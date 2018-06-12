@@ -1,0 +1,83 @@
+
+from time import time
+import numpy as np
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn import linear_model
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
+from pandas_confusion import ConfusionMatrix
+from sklearn import cross_validation
+from sklearn.cross_validation import KFold
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import accuracy_score
+from sklearn import metrics
+
+start = time()
+##obtain data
+path = "C:/Users/Lorna/Documents/R/MSE_235"
+
+fname = "NewsDataTrain.csv"
+full_file = path + "/" + fname
+
+cols = range(62)
+data_train = np.loadtxt(full_file,delimiter=",", skiprows=1, usecols=tuple(cols[1:]))
+X = data_train[:,1:-2]
+shares_train =data_train[:,-2]#pull out the number of shares from the data
+
+##Import Test data created on R
+gname = "NewsDataTest.csv"
+full_file_test = path + "/" + gname
+
+data_test = np.loadtxt(full_file_test,delimiter=",", skiprows=1, usecols=tuple(cols[1:]))
+X_test = data_test[:,1:-2]
+shares_test= data_test[:,-2]#pull out the number of shares from the data
+
+#for sensitivity analysis, loop through a couple of viral thresholds, in all our analysis, we had assumed a threshold of 5000 
+#from observation, we saw that it is possible for stories that were shared even as little as 1000 times to have been viewed hundreds of thousands of times
+#we examine values from 1000 t0 10,000 to see how this mapping of shares to the binary variable VIRAL changes our ROI
+#create binary variables
+
+for j in range(1000,10500,500):
+    print ("Binary Threshold:%0.0f"%(j))
+    y = np.array([1 if x > j else 0 for x in list(shares_train)])
+    y_test = np.array([1 if x > j else 0 for x in list(shares_test)])
+    
+    #create classifier
+    clf = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1,loss="exponential")
+    
+    clf = clf.fit(X,y)##fit model
+    y_predicted_train= clf.predict_proba(X)#predicted class for training set
+    
+    ##obtain optimal probability threshold
+    maxrev=0
+    final_threshold =0.5
+    for x in xrange(1,100):
+        thresh = 0.01*x
+        predicted_y_train=np.array([1 if x > thresh else 0 for x in list(y_predicted_train[:,1])])
+        cmatrix=confusion_matrix(y, predicted_y_train)
+        newROI=cmatrix[1,1]*100 + cmatrix[0,0]*15 + cmatrix[0,1]*(-15) + cmatrix[1,0]*(-30)
+        if newROI>maxrev:
+            maxrev=newROI
+            final_threshold=thresh
+    
+    #threshold not necessary for evaluating the model
+    scores = cross_validation.cross_val_score(clf, X, y,cv=2,scoring='roc_auc')#obtain 3 fold cross-validation scoring metrics
+    print("ROC_AUC: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std()))
+    
+    
+    ##get predictions on test set and use the optimal threshold determined on the training set to determine classes
+    y_predicted_test= clf.predict_proba(X_test)#predicted class for test set
+    predicted_y_test=np.array([1 if x > final_threshold else 0 for x in list(y_predicted_test[:,1])])
+    
+    ##obtain other relevant statistics
+    cm =ConfusionMatrix(y_test, predicted_y_test)
+    print(cm)
+    #cm.print_stats()
+    cmatrix=confusion_matrix(y_test, predicted_y_test)
+    ROI=cmatrix[1,1]*100 + cmatrix[0,0]*15 + cmatrix[0,1]*(-15) + cmatrix[1,0]*(-30)
+    print("ROI:%0.0f"%(ROI))
+    frac_viral=(cmatrix[1,0] + cmatrix[1,1]) / float(np.size(y_test)) #obtain fraction of test set that is actually variable ie what fraction of the test set actually has 1 as the target variable
+    print("Percentage of Test set that is Viral:%0.2f"%(frac_viral))
+    end = time()
+    print end - start

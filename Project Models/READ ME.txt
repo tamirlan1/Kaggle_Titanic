@@ -1,0 +1,19 @@
+There are 3 files required to run the R and Python code
+1.OnlineNewsPopularity.csv(to run the R code)
+2.NewsDataTrain(to run the Python code - already pre-processed in R)
+3.NewsDataTest(to run the Python code - already pre-processed in R)
+
+Ensure that all files are pointing to the correct directory before running the code
+
+Note: The python tuning code for the random forest and gradient boosting classifiers may take significant amounts of time
+
+Scikit Learn References
+To develop the scikit classifiers, we adopted and modified syntax and methods applied and shown in the following links:
+##References
+#http://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter
+#http://machinelearningmastery.com/tactics-to-combat-imbalanced-classes-in-your-machine-learning-dataset/
+#http://scikit-learn.org/stable/modules/model_evaluation.html
+#http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html#example-classification-plot-classifier-comparison-py
+#http://scikit-learn.org/stable/auto_examples/model_selection/randomized_search.html 
+#http://scikit-learn.org/stable/auto_examples/ensemble/plot_feature_transformation.html
+
